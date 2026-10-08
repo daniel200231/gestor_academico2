@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gestion_academica
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  cursos_service:
+    build: ./cursos_service
+    container_name: cursos_service
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=gestion_academica
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  
