@@ -1,0 +1,45 @@
+services:
+  db_estudiantes:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=${ESTUDIANTES_DB_NAME}
+      - POSTGRES_USER=${ESTUDIANTES_DB_USER}
+      - POSTGRES_PASSWORD=${ESTUDIANTES_DB_PASSWORD}
+    volumes:
+      - estudiantes_data:/var/lib/postgresql/data
+
+  estudiantes:
+    build: ./estudiantes_service
+    ports:
+      - "5001:5002"
+    env_file: .env
+    restart: on-failure
+    depends_on:
+      - db_estudiantes
+
+  db_cursos:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=${CURSOS_DB_NAME}
+      - POSTGRES_USER=${CURSOS_DB_USER}
+      - POSTGRES_PASSWORD=${CURSOS_DB_PASSWORD}
+    volumes:
+      - cursos_data:/var/lib/postgresql/data
+
+  cursos_service:
+    build: ./cursos_service
+    ports:
+      - "5002:5000"
+    environment:
+      - DB_HOST=db_cursos
+      - DB_PORT=${CURSOS_DB_PORT}
+      - DB_NAME=${CURSOS_DB_NAME}
+      - DB_USER=${CURSOS_DB_USER}
+      - DB_PASSWORD=${CURSOS_DB_PASSWORD}
+    restart: always
+    depends_on:
+      - db_cursos
+
+volumes:
+  estudiantes_data:
+  cursos_data:
