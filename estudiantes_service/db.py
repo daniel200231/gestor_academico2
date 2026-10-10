@@ -8,20 +8,21 @@ def get_connection():
         dbname=os.getenv("ESTUDIANTES_DB_NAME"),
         user=os.getenv("ESTUDIANTES_DB_USER"),
         password=os.getenv("ESTUDIANTES_DB_PASSWORD")
-    )  
+    )
+
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS estudiantes (
-            id serial PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             cedula VARCHAR(20) NOT NULL UNIQUE,
             nombre VARCHAR(100) NOT NULL,
+            apellido VARCHAR(100) NOT NULL,
             correo VARCHAR(100) NOT NULL UNIQUE,
             programa VARCHAR(100) NOT NULL
-          
-          )
+        )
     """)
     conn.commit()
     cur.close()
-    conn.close()    
+    conn.close()
