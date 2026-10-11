@@ -56,3 +56,20 @@ def crear():
     conn.close()
     return jsonify({"mensaje": "estudiante creado", "id": nuevo_id}),201
 
+@estudiantes_bp.route("/estudiantes/<int:id>", methods=["PUT"])
+def actualizar(id):
+    data = request.get_json()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE estudiantes SET cedula = %s, nombre = %s, apellido = %s, correo = %s, programa = %s WHERE id = %s",
+        (data["cedula"], data["nombre"], data["apellido"], data["correo"], data["programa"], id)
+    )
+    filas = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    if filas == 0:
+        return jsonify({"error": "Estudiante no encontrado"}), 404
+    return jsonify({"mensaje": "estudiante actualizado", "id": id}), 200
+
