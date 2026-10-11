@@ -73,3 +73,19 @@ def actualizar(id):
         return jsonify({"error": "Estudiante no encontrado"}), 404
     return jsonify({"mensaje": "estudiante actualizado", "id": id}), 200
 
+@estudiantes_bp.route("/estudiantes/<int:id>", methods=["DELETE"])
+def elimiar(id):
+    data = request.get_json()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+          "DELETE FROM estudiantes WHERE id = %s",
+        (id,)
+    )
+    filas = cur.rowcount
+    conn.commit()
+    cur.close()
+    conn.close()
+    if filas == 0:
+        return jsonify({"error": "no se puede eliminar el estudiante"}), 404
+    return jsonify({"mensaje": "estudiante eliminado", "id": id}), 200
