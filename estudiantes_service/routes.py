@@ -41,3 +41,18 @@ def obtener(id):
         "programa": f[5]
     }),200
 
+@estudiantes_bp.route("/estudiantes", methods=["POST"])
+def crear():
+    data = request.get_json()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO estudiantes(cedula, nombre, apellido, correo, programa) VALUES(%s, %s, %s, %s, %s) RETURNING id",
+        (data["cedula"], data["nombre"], data["apellido"], data["correo"], data["programa"])
+    )
+    nuevo_id= cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"mensaje": "estudiante creado", "id": nuevo_id}),201
+
