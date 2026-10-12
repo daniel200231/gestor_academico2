@@ -11,7 +11,7 @@ services:
   estudiantes:
     build: ./estudiantes_service
     ports:
-      - "5001:5002"
+      - "5002:5002"
     env_file: .env
     restart: on-failure
     depends_on:
@@ -29,7 +29,21 @@ services:
   cursos_service:
     build: ./cursos_service
     ports:
-      - "5002:5000"
+      - "5000:5000"
+    environment:
+      - DB_HOST=db_cursos
+      - DB_PORT=${CURSOS_DB_PORT}
+      - DB_NAME=${CURSOS_DB_NAME}
+      - DB_USER=${CURSOS_DB_USER}
+      - DB_PASSWORD=${CURSOS_DB_PASSWORD}
+    restart: always
+    depends_on:
+      - db_cursos
+
+  matriculas_service:
+    build: ./matriculas_service
+    ports:
+      - "5003:5003"
     environment:
       - DB_HOST=db_cursos
       - DB_PORT=${CURSOS_DB_PORT}
