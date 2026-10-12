@@ -39,7 +39,7 @@ def obtener(id):
         "apellido": f[3],
         "correo": f[4],
         "programa": f[5]
-    }), 200
+    }),200
 
 @estudiantes_bp.route("/estudiantes", methods=["POST"])
 def crear():
@@ -50,11 +50,11 @@ def crear():
         "INSERT INTO estudiantes(cedula, nombre, apellido, correo, programa) VALUES(%s, %s, %s, %s, %s) RETURNING id",
         (data["cedula"], data["nombre"], data["apellido"], data["correo"], data["programa"])
     )
-    nuevo_id = cur.fetchone()[0]
+    nuevo_id= cur.fetchone()[0]
     conn.commit()
     cur.close()
     conn.close()
-    return jsonify({"mensaje": "estudiante creado", "id": nuevo_id}), 201
+    return jsonify({"mensaje": "estudiante creado", "id": nuevo_id}),201
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["PUT"])
 def actualizar(id):
@@ -75,10 +75,11 @@ def actualizar(id):
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["DELETE"])
 def elimiar(id):
+    data = request.get_json()
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        "DELETE FROM estudiantes WHERE id = %s",
+          "DELETE FROM estudiantes WHERE id = %s",
         (id,)
     )
     filas = cur.rowcount
