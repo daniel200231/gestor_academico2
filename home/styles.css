@@ -1,0 +1,78 @@
+:root {
+  --nav: #1e2b37;
+  --fondo: #f4f7f9;
+  --acento: #00c4d4;
+  --texto: #0f172a;
+}
+/* quitar margenes por defecto y hacer ancho para incluir relleno predecible*/
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* cuerpo de la pagina*/
+body {
+  font-family: Arial, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  display: flex; /*pone la seccion vertical*/
+  min-height: 100vh; /*ocupa toda la altura de la ventana*/
+}
+/*ancho fijo de 220px fondo definido por variable y texto blanco*/
+.sidebar {
+  width: 220px;
+  background: var(--nav);
+  color: white;
+  padding: 24px;
+}
+/*ordena y organiza los enlaces en vertical con 12px entre ellos.*/
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+.sidebar a {
+  color: white;
+  text-decoration: none;
+}
+/*cuando pasas el mouse, el enlace cambia al cian.*/
+.sidebar a:hover {
+  color: var(--acento);
+}
+/*ocupa todo el espacio que le deja la sidebar*/
+.contenido {
+  flex: 1;
+  padding: 32px;
+}
+/*una cuadrícula de tres columnas del mismo ancho*/
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /*una parte del espacio disponible*/
+  gap: 16px;
+  margin: 24px 0;
+}
+.tarjeta {
+  padding: 20px;
+  border-radius: 12px;
+}
+.tarjeta strong {
+  font-size: 32px;
+}
+/*la tarjeta con fondo azul oscuro y el número en cian*/
+.oscura {
+  background: var(--nav);
+  color: white;
+}
+.oscura strong {
+  color: var(--acento);
+}
+/*tarjeta blanca con esquinas redondeadas*/
+.panel {
+  background: white;
+  padding: 24px;
+  border-radius: 12px; /*una sombra suave*/
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
