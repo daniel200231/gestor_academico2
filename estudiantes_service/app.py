@@ -1,8 +1,10 @@
 from flask import Flask, jsonify
 from db import init_db
 from routes import estudiantes_bp
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 app.register_blueprint(estudiantes_bp)
 
 @app.route("/health")
