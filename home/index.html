@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gestor Academico</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <h2>Gestor Academico</h2>
+      <nav>
+        <a href="#estudiantes">Estudiantes</a>
+        <a href="#cursos">Cursos</a>
+        <a href="#Matriculas">Matriculas</a>
+      </nav>
+    </aside>
+    <main class="contenido">
+      <h1>Tablero de control</h1>
+      <div class="tarjetas">
+        <div class="tarjeta oscura">
+          <p>Estudiantes</p>
+          <strong id="total-estudiantes">0</strong>
+        </div>
+        <div class="tarjeta oscura">
+          <p>Cursos</p>
+          <strong id="total-cursos">0</strong>
+        </div>
+        <div class="tarjeta oscura">
+          <p>Matriculas</p>
+          <strong id="total-matriculas">0</strong>
+        </div>
+      </div>
+      <section id="estudiantes" class="panel">
+        <h2>Estudiantes</h2>
+        <ul id="lista-estudiantes"></ul>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
