@@ -1,4 +1,12 @@
 services:
+  db_matriculas:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=${MATRICULAS_DB_NAME}
+      - POSTGRES_USER=${MATRICULAS_DB_USER}
+      - POSTGRES_PASSWORD=${MATRICULAS_DB_PASSWORD}
+    volumes:
+      - matriculas_data:/var/lib/postgresql/data
   db_estudiantes:
     image: postgres:16
     environment:
@@ -30,6 +38,8 @@ services:
     build: ./cursos_service
     ports:
       - "5002:5000"
+<<<<<<< Updated upstream
+=======
     environment:
       - DB_HOST=db_cursos
       - DB_PORT=${CURSOS_DB_PORT}
@@ -40,6 +50,28 @@ services:
     depends_on:
       - db_cursos
 
+  matriculas_service:
+    build: ./matriculas_service
+    ports:
+      - "5003:5003"
+>>>>>>> Stashed changes
+    environment:
+      - DB_HOST=db_matriculas
+      - DB_PORT=${MATRICULAS_DB_PORT}
+      - DB_NAME=${MATRICULAS_DB_NAME}
+      - DB_USER=${MATRICULAS_DB_USER}
+      - DB_PASSWORD=${MATRICULAS_DB_PASSWORD}
+      - ESTUDIANTES_URL=http://estudiantes:5002
+      - CURSOS_URL=http://cursos_service:5000
+
+    restart: always
+    depends_on:
+      - db_matriculas
+
 volumes:
   estudiantes_data:
   cursos_data:
+<<<<<<< Updated upstream
+=======
+  matriculas_data:
+>>>>>>> Stashed changes
