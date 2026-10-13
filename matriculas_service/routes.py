@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 from db import get_db_connection
 from psycopg2.extras import RealDictCursor
+import os
+import requests
+ESTUDIANTES_URL = os.getenv("ESTUDIANTES_URL")
+CURSOS_URL = os.getenv("CURSOS_URL")
 
 matriculas_bp = Blueprint('matriculas', __name__)
 
@@ -45,7 +49,18 @@ def create_matricula():
 
     if not estudiante_id or not curso_id:
         return jsonify({'error': 'estudiante_id y curso_id son obligatorios'}), 400
-
+    try:
+        r = requests.get(f"{ESTUDIANTES_URL}/estudiantes/{estudiante_id}", timeout=3)
+    except requests.exceptions.RequestException:
+        return jsonify({"error":"servicio de estudiantes no disponible"}),503
+    if r.status_code== 404:
+        return jsonify({"error":"el estudiante no existe"}),404    
+    try:
+        r = requests.get(f"{CURSOS_URL}/cursos/{curso_id}", timeout=3)
+    except requests.exceptions.RequestException:
+        return jsonify({"error": "servicio de cursos no disponible"}), 503
+    if r.status_code == 404:
+        return jsonify({"error": "el curso no existe"}), 404
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(
