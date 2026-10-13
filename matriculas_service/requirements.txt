@@ -1,0 +1,8 @@
+<<<<<<< Updated upstream
+=======
+Flask==3.0.3
+flask-cors
+psycopg2-binary==2.9.9
+requests
+
+>>>>>>> Stashed changes
