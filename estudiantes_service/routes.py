@@ -75,7 +75,6 @@ def actualizar(id):
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["DELETE"])
 def elimiar(id):
-    data = request.get_json()
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
