@@ -5,7 +5,6 @@ estudiantes_bp = Blueprint("estudiantes", __name__)
 
 @estudiantes_bp.route("/estudiantes", methods=["GET"])
 def listar():
-
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT id, cedula, nombre, apellido, correo, programa FROM estudiantes")
@@ -17,6 +16,7 @@ def listar():
         for f in filas
     ]
     return jsonify(estudiantes), 200
+
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["GET"])
 def obtener(id):
     conn = get_connection()

@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 from flask import Blueprint, request, jsonify
 from db import get_db_connection
 from psycopg2.extras import RealDictCursor
@@ -122,4 +120,3 @@ def delete_matricula(id):
         return jsonify({'error': 'Matricula no encontrada'}), 404
 
     return jsonify({'message': 'Matricula eliminada exitosamente'}), 200
->>>>>>> Stashed changes
