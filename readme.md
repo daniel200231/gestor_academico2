@@ -1,358 +1,189 @@
-# Sistema Académico Distribuido
+# Sistema de Gestión Académica 2
 
-Sistema de gestión académica basado en una **arquitectura de microservicios**, diseñado para centralizar y automatizar procesos relacionados con docentes, cursos, estudiantes, matrículas y calificaciones.
+Una plataforma modular para administrar estudiantes, cursos y matrículas universitarias. Diseñada bajo una **arquitectura de microservicios** independiente, donde cada servicio gestiona su propia base de datos en **PostgreSQL**, expone endpoints REST en **Flask (Python)** y se orquesta de manera centralizada mediante **Docker Compose**.
+
+---
 
 ## Tabla de contenido
 
-- [Problema que resuelve](#problema-que-resuelve)
-- [Objetivo del proyecto](#objetivo-del-proyecto)
-- [Integrantes y roles](#integrantes-y-roles)
-- [Arquitectura del sistema](#arquitectura-del-sistema)
-- [Servicios del sistema](#servicios-del-sistema)
-- [Comunicación entre servicios](#comunicación-entre-servicios)
-- [Tipo de arquitectura](#tipo-de-arquitectura)
-- [Modelo de datos y dominio](#modelo-de-datos-y-dominio)
-- [Usuarios del sistema](#usuarios-del-sistema)
-- [Arquitectura interna de los microservicios](#arquitectura-interna-de-los-microservicios)
-- [Manejo de fallas](#manejo-de-fallas)
-- [Docker](#docker)
-- [Docker-compose](#docker-compose)
-- [Estado del proyecto](#estado-del-proyecto)
+- [<a name="toc-problema"></a>¿Qué problema resuelve?](#problema)
+- [<a name="toc-objetivo"></a>Objetivo del proyecto](#objetivo)
+- [<a name="toc-integrantes"></a>Integrantes del equipo](#integrantes)
+- [<a name="toc-arquitectura"></a>Cómo está organizado el sistema](#arquitectura)
+- [<a name="toc-estructura"></a>Estructura de las carpetas](#estructura)
+- [<a name="toc-puertos"></a>Servicios, puertos y bases de datos](#puertos)
+- [<a name="toc-rutas"></a>Rutas y endpoints de cada servicio](#rutas)
+- [<a name="toc-frontend"></a>Interfaz web (Frontend)](#frontend)
+- [<a name="toc-env"></a>Variables de entorno (.env)](#env)
+- [<a name="toc-detalles"></a>Persistencia de datos y prevención de fallas](#detalles)
 
 ---
 
-## Problema que resuelve
+<a name="problema"></a>
+## ¿Qué problema resuelve?
 
-El sistema resuelve la necesidad de **centralizar y automatizar la gestión académica** de una institución educativa. Sin una plataforma integrada, estos procesos tendrían que manejarse de forma manual, dispersa o mediante hojas de cálculo y sistemas aislados.
+En los sistemas monolíticos tradicionales, cualquier fallo en el módulo de matrículas o estudiantes puede tumbar toda la plataforma académica. 
 
-En concreto, permite:
+`gestor_academico2` desacopla estas responsabilidades en microservicios autónomos:
 
-- Integrar los procesos de **docentes, cursos, estudiantes, matrículas y notas** bajo una arquitectura común accesible mediante API.
-- Mejorar la **escalabilidad y mantenibilidad** del software, ya que cada dominio puede crecer, desplegarse y mantenerse de forma independiente.
-- Reducir errores, inconsistencias de datos y procesos manuales poco escalables.
-
-### ¿Quién lo usará?
-
-- **Personal administrativo/académico:** registrar docentes, crear cursos y gestionar matrículas.
-- **Docentes:** consultar y gestionar información de los cursos que dictan y, potencialmente, registrar notas.
-- **Estudiantes:** consultar sus matrículas, cursos inscritos y calificaciones.
-
-### ¿Qué pasaría si no existiera?
-
-La institución tendría que depender de procesos manuales o herramientas no integradas, lo que aumentaría el riesgo de errores e inconsistencias, además de generar procesos más lentos y difíciles de escalar.
+- **Aislamiento de fallas:** Si el servicio de estudiantes requiere mantenimiento o se cae, el catálogo de cursos sigue operando sin interrupciones.
+- **Bases de datos independientes:** Ningún servicio accede directamente a la tabla de otro; cada uno tiene su propio servidor de PostgreSQL.
+- **Comunicación HTTP transparente:** El servicio de matrículas valida la información conectándose directamente a las APIs de Cursos y Estudiantes mediante peticiones web internas.
 
 ---
 
+<a name="objetivo"></a>
 ## Objetivo del proyecto
 
-El propósito principal de este proyecto es **diseñar e implementar una plataforma integral para la administración de procesos académicos universitarios**, facilitando el control y seguimiento de docentes, cursos, estudiantes, matrículas y calificaciones.
-
-Para lograrlo, el sistema adopta un enfoque modular basado en microservicios:
-
-- **Autonomía y escalabilidad:** desacoplar cada área funcional para que pueda evolucionar y mantenerse de forma independiente.
-- **Punto de acceso unificado:** centralizar las peticiones de los clientes mediante un **API Gateway**.
-- **Aislamiento de datos:** respaldar cada servicio con su propia base de datos **PostgreSQL**, evitando dependencias directas entre módulos.
+Desplegar una arquitectura distribuida lista para producción que permita registrar estudiantes, crear la oferta académica de cursos y gestionar las matrículas universitarias, garantizando la persistencia de datos mediante volúmenes de Docker y la configuración segura a través de variables de entorno.
 
 ---
 
-## Integrantes y roles
+<a name="integrantes"></a>
+## Integrantes del equipo
 
-| Integrante                       | Rol                         |
-| -------------------------------- | --------------------------- |
-| **Cristian Girón**               | Líder de Proyecto           |
-| **Dayan Fajardo**                | Líder Técnico / DevOps      |
-| **Olver Edinson Arenas Vásquez** | Documentación Técnica       |
-| **Daniel Fernández**             | Presentación y Comunicación |
+| Nombre | Rol y responsabilidades |
+| ------ | ----------------------- |
+| **Daniel Fernández** | Configuración general de infraestructura (`docker-compose.yml`), variables de entorno (`.env`), interfaz gráfica (`home/`) y microservicios de Cursos y Estudiantes. |
+| **Olver Edinson Arenas Vásquez** | Desarrollo e integración del microservicio de Matrículas (`matriculas_service`), consumo inter-servicio de APIs, gestión de ramas en GitHub y documentación técnica. |
 
 ---
 
-## Arquitectura del sistema
+<a name="arquitectura"></a>
+## Cómo está organizado el sistema
+
+Cada servicio se ejecuta dentro de su propio contenedor en una red privada virtual de Docker:
 
 ```text
-┌───────────────────────────┐
-│          Usuario          │
-└─────────────┬─────────────┘
-              │
-              ▼
-┌───────────────────────────┐
-│          Frontend         │
-│     Home / Interfaz UI    │
-└─────────────┬─────────────┘
-              │ HTTP
-              ▼
-┌───────────────────────────┐
-│        API Gateway        │
-└─────────────┬─────────────┘
-              │
-       ┌──────┼──────┬──────────┬─────────┐
-       ▼      ▼      ▼          ▼         ▼
-  Docentes  Cursos  Estudiantes Matrículas Notas
-  Service   Service   Service    Service   Service
-      │        │        │          │         │
-      ▼        ▼        ▼          ▼         ▼
- PostgreSQL PostgreSQL PostgreSQL PostgreSQL PostgreSQL
-```
+                             ┌───────────────────────────────┐
+                             │         Interfaz Web          │
+                             │    (home/index.html + JS)     │
+                             └───────────────┬───────────────┘
+                                             │
+                        ┌────────────────────┼────────────────────┐
+                        │ Peticiones HTTP    │ Peticiones HTTP    │ Peticiones HTTP
+                        ▼ (Puerto 5001)      ▼ (Puerto 5002)      ▼ (Puerto 5003)
+┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+│   Servicio Estudiantes    ││      Servicio Cursos      ││    Servicio Matrículas    │
+│  (estudiantes_service)    ││     (cursos_service)      ││   (matriculas_service)    │
+└─────────────┬─────────────┘└─────────────┬─────────────┘└─────────────┬─────────────┘
+              │                            │                            │
+              │                            │     Consumo de API HTTP    │
+              │                            ├───────────────────────────►│ (Valida Alumnos
+              │                            │                            │  y Cursos)
+              ▼                            ▼                            ▼
+┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+│    db_estudiantes (BD)    ││      db_cursos (BD)       ││    db_matriculas (BD)     │
+│   (PostgreSQL - Port 5432)││   (PostgreSQL - Port 5432)││   (PostgreSQL - Port 5432)│
+└───────────────────────────┘└───────────────────────────┘└───────────────────────────┘
 
-Cada microservicio posee su propia lógica de negocio, base de datos y contenedor Docker. El **API Gateway** funciona como punto de entrada único para los clientes.
-
----
-
-## Servicios del sistema
-
-Los principales servicios del sistema académico son:
-
-1. **Docentes:** gestiona la información de los profesores, como cédula, nombre, correo, departamento y género.
-2. **Cursos:** administra los cursos ofrecidos, incluyendo código, nombre, créditos y semestre.
-3. **Estudiantes:** gestiona los datos de los estudiantes, como cédula, nombre, correo y programa académico.
-4. **Matrículas:** administra la relación entre estudiantes y cursos.
-5. **Notas:** almacena las calificaciones asociadas a cada matrícula.
-
-### Independencia de los microservicios
-
-Cada microservicio puede desarrollarse y mantenerse de manera independiente porque cuenta con:
-
-- Su propia **base de datos**.
-- Su propia **lógica de negocio**.
-- Su propio **contenedor Docker**.
-- Su propio **Dockerfile** para el despliegue.
-
-También son independientes los procesos de:
-
-- **Despliegue**.
-- **Modelado de base de datos**.
-- **Pruebas**.
-
----
-
-## Comunicación entre servicios
-
-La comunicación entre los microservicios funciona de manera **síncrona** mediante peticiones **HTTP/REST**, utilizando **JSON** como formato de intercambio de datos.
-
-El **API Gateway** recibe las peticiones del cliente y las enruta al servicio correspondiente según el recurso solicitado:
-
-```text
-/docentes
-/cursos
-/estudiantes
-/matriculas
-/notas
-```
-
-Algunos servicios también necesitan comunicarse directamente entre sí para validar información:
-
-1. **Matrículas → Estudiantes y Cursos:** antes de crear una matrícula, se valida que existan el `estudiante_id` y el `curso_id`.
-2. **Notas → Matrículas:** antes de registrar una nota, se valida que exista el `matricula_id`.
-
-### Formato de datos
-
-Los servicios exponen y consumen información en formato **JSON**, lo que facilita la interoperabilidad entre ellos aunque cada microservicio tenga una base de datos independiente.
-
-### ¿Qué pasa si un servicio no responde?
-
-Si, por ejemplo, el servicio de Matrículas necesita validar un estudiante y el servicio de Estudiantes no responde, la operación de matrícula **no debería completarse**, con el fin de evitar inconsistencias.
-
-Para manejar este escenario se propone:
-
-- Definir **timeouts** en las peticiones entre servicios.
-- Retornar códigos de error claros, como `503 Service Unavailable`, cuando falle un servicio dependiente.
-
----
-
-## Tipo de arquitectura
-
-Se eligió una **arquitectura de microservicios** porque permite dividir el sistema en servicios independientes, facilitando el mantenimiento, el despliegue y el crecimiento según la demanda.
-
-Cada módulo puede escalar o actualizarse sin afectar directamente a los demás, lo que ofrece mayor flexibilidad frente a una arquitectura monolítica tradicional.
-
----
-
-## Modelo de datos y dominio
-
-Cada microservicio administra su propio dominio y su propia tabla principal.
-
-### 1. Servicio de Docentes (`docentes-service`)
-
-**Tabla:** `docente`
-
-| Campo          | Tipo de dato   | Restricciones / Reglas               |
-| -------------- | -------------- | ------------------------------------ |
-| `id`           | `INTEGER`      | Primary Key, autogenerado (`SERIAL`) |
-| `cedula`       | `VARCHAR(20)`  | `NOT NULL`, `UNIQUE`                 |
-| `nombre`       | `VARCHAR(100)` | `NOT NULL`                           |
-| `correo`       | `VARCHAR(100)` | `NOT NULL`, `UNIQUE`                 |
-| `departamento` | `VARCHAR(100)` | `NOT NULL`                           |
-| `genero`       | `VARCHAR(20)`  | Opcional                             |
-
-### 2. Servicio de Cursos (`cursos-service`)
-
-**Tabla:** `curso`
-
-| Campo        | Tipo de dato   | Restricciones / Reglas               |
-| ------------ | -------------- | ------------------------------------ |
-| `id`         | `INTEGER`      | Primary Key, autogenerado (`SERIAL`) |
-| `codigo`     | `VARCHAR(20)`  | `NOT NULL`, `UNIQUE`                 |
-| `nombre`     | `VARCHAR(100)` | `NOT NULL`                           |
-| `creditos`   | `INTEGER`      | `NOT NULL`                           |
-| `semestre`   | `INTEGER`      | `NOT NULL`                           |
-| `docente_id` | `INTEGER`      | `NOT NULL` (clave foránea lógica)    |
-
-### 3. Servicio de Estudiantes (`estudiantes-service`)
-
-**Tabla:** `estudiante`
-
-| Campo      | Tipo de dato   | Restricciones / Reglas               |
-| ---------- | -------------- | ------------------------------------ |
-| `id`       | `INTEGER`      | Primary Key, autogenerado (`SERIAL`) |
-| `cedula`   | `VARCHAR(20)`  | `NOT NULL`, `UNIQUE`                 |
-| `nombre`   | `VARCHAR(100)` | `NOT NULL`                           |
-| `correo`   | `VARCHAR(100)` | `NOT NULL`, `UNIQUE`                 |
-| `programa` | `VARCHAR(100)` | `NOT NULL`                           |
-
-### 4. Servicio de Matrículas (`matriculas-service`)
-
-**Tabla:** `matricula`
-
-| Campo           | Tipo de dato  | Restricciones / Reglas               |
-| --------------- | ------------- | ------------------------------------ |
-| `id`            | `INTEGER`     | Primary Key, autogenerado (`SERIAL`) |
-| `estudiante_id` | `INTEGER`     | `NOT NULL` (clave foránea lógica)    |
-| `curso_id`      | `INTEGER`     | `NOT NULL` (clave foránea lógica)    |
-| `anio`          | `INTEGER`     | `NOT NULL` (año lectivo)             |
-| `periodo`       | `VARCHAR(10)` | `NOT NULL` (ej.: `1`, `2`, `2026-1`) |
-
-### 5. Servicio de Notas (`notas-service`)
-
-**Tabla:** `nota`
-
-| Campo          | Tipo de dato   | Restricciones / Reglas               |
-| -------------- | -------------- | ------------------------------------ |
-| `id`           | `INTEGER`      | Primary Key, autogenerado (`SERIAL`) |
-| `matricula_id` | `INTEGER`      | `NOT NULL` (clave foránea lógica)    |
-| `calificacion` | `NUMERIC(3,2)` | `NOT NULL` (ej.: `4.50`)             |
-| `observacion`  | `VARCHAR(200)` | Opcional                             |
-
-### Relaciones del sistema
-
-- **Docente → Curso:** un curso referencia al docente responsable mediante `docente_id`.
-- **Estudiante → Matrícula:** una matrícula referencia al estudiante mediante `estudiante_id`.
-- **Curso → Matrícula:** una matrícula referencia al curso mediante `curso_id`.
-- **Matrícula → Nota:** una nota referencia a la matrícula mediante `matricula_id`.
-
-### Datos críticos
-
-1. **Cédula** de docentes y estudiantes: identifica de forma única a la persona.
-2. **`docente_id`:** permite identificar al responsable de un curso.
-3. **`estudiante_id` y `curso_id`:** conectan al estudiante con el curso matriculado.
-4. **`matricula_id`:** vincula una calificación con una matrícula.
-5. **Calificación:** representa el resultado académico del estudiante.
-
-### Impacto de la pérdida de datos
-
-- Si se pierden **docentes**, algunos cursos podrían quedar asociados a un `docente_id` inexistente.
-- Si se pierden **estudiantes**, algunas matrículas quedarían con referencias huérfanas.
-- Si se pierden **cursos**, se perdería la relación entre determinadas matrículas y sus asignaturas.
-- Si se pierden **notas**, se afectaría directamente el historial académico.
-
----
-
-## Usuarios del sistema
-
-| Usuario                      | Descripción                                          | Acciones principales                                    |
-| ---------------------------- | ---------------------------------------------------- | ------------------------------------------------------- |
-| **Administrativo/Académico** | Personal encargado de la gestión general del sistema | Registrar docentes, crear cursos y gestionar matrículas |
-| **Docente**                  | Profesor responsable de uno o más cursos             | Consultar o gestionar sus cursos y registrar notas      |
-| **Estudiante**               | Usuario matriculado en uno o más cursos              | Consultar matrículas, cursos inscritos y calificaciones |
-
-Aunque todos ingresan a través del mismo **API Gateway**, el nivel de acceso depende del rol. Un estudiante debería poder consultar únicamente su propia información, mientras que el personal administrativo y los docentes tendrían permisos de creación o modificación según sus responsabilidades.
-
----
-
-## Arquitectura interna de los microservicios
-
-La estructura base propuesta para cada microservicio es:
-
-```text
-microservicio/
+gestor_academico2/
 │
-├── app.py
+├── cursos_service/         # Microservicio para la gestión de catálogo de cursos
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (cursos_db)
+│   ├── routes.py           # Endpoints REST (GET, POST, DELETE)
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── src/
-│   ├── routes.py
-│   └── services.py
+├── estudiantes_service/    # Microservicio para administración de estudiantes
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (estudiantes_service)
+│   ├── routes.py           # Endpoints REST (GET, POST, PUT, DELETE)
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── db.py
+├── matriculas_service/     # Microservicio para el registro e historial de matrículas
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (matriculas_db)
+│   ├── routes.py           # Endpoints REST e integración vía HTTP con otros servicios
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── requirements.txt
+├── home/                   # Cliente Frontend web
+│   ├── index.html          # Interfaz visual interactiva
+│   ├── styles.css          # Hojas de estilo
+│   └── app.js              # Lógica de consumo de las APIs REST
 │
-└── Dockerfile
-```
+├── .env                    # Credenciales y parámetros de conexión global
+├── .gitignore              # Reglas de exclusión para Git
+├── docker-compose.yml      # Orquestador de contenedores, puertos y volúmenes
+└── README.md               # Documentación general del proyecto
 
-### Responsabilidad de los componentes
+  Servicios, puertos y bases de datos
 
-- **`app.py`:** punto de entrada de la aplicación.
-- **`src/routes.py`:** definición de endpoints y rutas HTTP.
-- **`src/services.py`:** lógica de negocio del microservicio.
-- **`db.py`:** configuración y manejo de la conexión con la base de datos.
-- **`requirements.txt`:** dependencias de Python necesarias para ejecutar el servicio.
-- **`Dockerfile`:** instrucciones para construir la imagen Docker del microservicio.
+| Servicio | Puerto Host (Equipo) | Puerto Contenedor | Nombre de la BD | Usuario BD | Contenedor BD |
+| :--- | :---: | :---: | :--- | :--- | :--- |
+| **Estudiantes** | `5001` | `5002` | `estudiantes_service` | `estudiante` | `db_estudiantes` |
+| **Cursos** | `5002` | `5000` | `cursos_db` | `curso` | `db_cursos` |
+| **Matrículas** | `5003` | `5003` | `matriculas_db` | `matricula` | `db_matriculas` |
 
 ---
 
-## Manejo de fallas
+Rutas y endpoints de cada servicio
+Todas las respuestas utilizan códigos de estado HTTP estandarizados (200 OK, 201 Created, 400 Bad Request, 404 Not Found) e intercambian información en formato JSON.
 
-### Fallas en un servicio
+1. Servicio de Estudiantes (:5001)
+Campos: id, cedula, nombre, apellido, correo, programa.
 
-Si se presenta una falla en un servicio, por ejemplo **Notas**, las demás funcionalidades independientes pueden continuar operando. Sin embargo, cualquier operación que dependa directamente de dicho servicio no podrá completarse correctamente.
+Endpoints:
 
-Como medidas de manejo se propone:
+GET /estudiantes — Obtiene la lista completa de estudiantes.
 
-- Implementar un endpoint `/health` en cada servicio para verificar su disponibilidad.
-- Implementar **reintentos exponenciales** cuando un servicio se encuentre temporalmente reiniciándose o no disponible.
-- Utilizar **timeouts** para evitar peticiones bloqueadas indefinidamente.
-- Retornar códigos HTTP adecuados ante fallas controladas.
+GET /estudiantes/<id> — Obtiene los detalles de un estudiante específico.
 
-### Fallas en la base de datos
+POST /estudiantes — Registra un nuevo estudiante.
 
-Una falla o pérdida de información en una base de datos puede generar inconsistencias debido a las referencias lógicas existentes entre los distintos servicios.
+PUT /estudiantes/<id> — Actualiza la información de un estudiante.
 
-**Medidas propuestas:**
+DELETE /estudiantes/<id> — Elimina un registro de estudiante.
 
-- Implementar **backups automáticos y periódicos**.
-- Utilizar **réplicas de lectura** en los servicios con mayor volumen de consultas.
-- Monitorear recursos como conexiones activas, espacio en disco y disponibilidad para detectar problemas antes de una caída total.
+2. Servicio de Cursos (:5002)
+Campos: id, codigo, nombre, creditos, profesor, fecha_creacion.
 
----
+Endpoints:
 
-## Docker
+GET /cursos — Obtiene la oferta completa de cursos disponibles.
 
-La vista `frontend/index.html` es un archivo estático. Actualmente no tiene un contenedor propio ni un proceso de compilación independiente. Se sirve desde el contenedor `gateway`, que utiliza Nginx como servidor web y también como API Gateway.
+POST /cursos — Crea un nuevo curso en el sistema.
 
-## Recorrido de la vista
+DELETE /cursos/<id> — Remueve un curso según su ID.
 
-```text
-Navegador
-   ↓ http://localhost:8000
-Docker
-   ↓ puerto 8000 → puerto 80
-Contenedor gateway
-   ↓
-Nginx
-   ↓
-/usr/share/nginx/html/index.html
-   ↓
-frontend/index.html
-```
+3. Servicio de Matrículas (:5003)
+Campos: id, estudiante_id, curso_id, anio, periodo.
 
-## Docker-compose
+Endpoints:
 
-El proyecto cuenta con un archivo `docker-compose.yml` que permite levantar todos los servicios y sus bases de datos de manera coordinada.
+GET /matriculas — Consulta todas las matrículas registradas.
 
-Para ejecutarlo se debe utilizar el comando:
+POST /matriculas — Valida la existencia del alumno y del curso mediante peticiones HTTP a los servicios respectivos antes de guardar la inscripción.
 
-```bash
-docker-compose up --build -d
-```
+Interfaz web (Frontend)
+El proyecto incluye una aplicación web estática ubicada en la carpeta /home. Permite interactuar con la plataforma de forma intuitiva directamente desde cualquier navegador web sin requerir herramientas como Postman o cURL para efectuar operaciones CRUD.
 
-## Estado del proyecto
+Variables de entorno (.env)
+El archivo .env concentra la configuración centralizada de acceso a la infraestructura:                                                          Base de datos: Servicio de Estudiantes
+ESTUDIANTES_DB_HOST=db_estudiantes
+ESTUDIANTES_DB_PORT=5432
+ESTUDIANTES_DB_NAME=estudiantes_service
+ESTUDIANTES_DB_USER=estudiante
+ESTUDIANTES_DB_PASSWORD=123456
 
-Proyecto académico en desarrollo, orientado a aplicar conceptos de **sistemas distribuidos, microservicios, APIs REST, Docker y PostgreSQL**.
+ Base de datos: Servicio de Cursos
+CURSOS_DB_PORT=5432
+CURSOS_DB_NAME=cursos_db
+CURSOS_DB_USER=curso
+CURSOS_DB_PASSWORD=123456
+
+ Base de datos: Servicio de Matrículas
+MATRICULAS_DB_PORT=5432
+MATRICULAS_DB_NAME=matriculas_db
+MATRICULAS_DB_USER=matricula
+MATRICULAS_DB_PASSWORD=123456
+
+Persistencia de datos y prevención de fallas
+Persistencia garantizada: Se definen tres volúmenes independientes de Docker (estudiantes_data, cursos_data y matriculas_data) asignados a los directorios de almacenamiento de PostgreSQL /var/lib/postgresql/data. Esto asegura que los datos se conserven aunque se detengan o reconstruyan los contenedores.
+
+Políticas de reinicio: Los contenedores de aplicaciones están configurados con restart: always u on-failure para reanimar automáticamente los procesos en caso de un cierre inesperado.
+
+Desacoplamiento de red: La comunicación inter-servicio se resuelve mediante DNS interno de Docker en la red compartida, evitando el acoplamiento rígido de IP estáticas.
