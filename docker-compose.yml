@@ -40,6 +40,16 @@ services:
     depends_on:
       - db_cursos
 
+  home:
+    build: ./home
+    ports:
+      - "8080:80"
+    restart: always
+    depends_on:
+      - estudiantes
+      - cursos_service
+      - matriculas_service
+
   matriculas_service:
     build: ./matriculas_service
     ports:

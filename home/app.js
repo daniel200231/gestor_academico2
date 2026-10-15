@@ -1,7 +1,7 @@
 // URL del servicio de estudiantes,
-const API_ESTUDIANTES = "http://localhost:5001/estudiantes";
-const API_MATRICULAS = "http://localhost:5003/matriculas";
-const API_CURSOS = "http://localhost:5002/cursos";
+const API_ESTUDIANTES = "/estudiantes";
+const API_MATRICULAS = "/matriculas";
+const API_CURSOS = "/cursos";
 const enlaces = document.querySelectorAll(".sidebar a");
 const paneles = document.querySelectorAll(".panel");
 
