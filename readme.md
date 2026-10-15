@@ -1,230 +1,189 @@
-<h1>Sistema de Gestión Académica 2 </h1>
+# Sistema de Gestión Académica 2
 
-<p>Proyecto escolar para la gestión de procesos académicos de una universidad. El sistema está construido usando una <strong>arquitectura de microservicios</strong> organizada con <strong>Flask (Python)</strong>, bases de datos independientes en <strong>PostgreSQL</strong>, una interfaz web sencilla (<strong>HTML, CSS y JavaScript</strong>) y <strong>Docker Compose</strong> para poner a funcionar todo al mismo tiempo.</p>
+Una plataforma modular para administrar estudiantes, cursos y matrículas universitarias. Diseñada bajo una **arquitectura de microservicios** independiente, donde cada servicio gestiona su propia base de datos en **PostgreSQL**, expone endpoints REST en **Flask (Python)** y se orquesta de manera centralizada mediante **Docker Compose**.
 
-<hr>
+---
 
-<h2>Tabla de contenido</h2>
-<ul>
-  <li><a href="#que-problema-resuelve">¿Qué problema resuelve?</a></li>
-  <li><a href="#objetivo-del-proyecto">Objetivo del proyecto</a></li>
-  <li><a href="#integrantes-del-equipo">Integrantes del equipo</a></li>
-  <li><a href="#como-esta-organizado-el-sistema">Cómo está organizado el sistema</a></li>
-  <li><a href="#estructura-de-las-carpetas">Estructura de las carpetas</a></li>
-  <li><a href="#servicios-y-puertos">Servicios y puertos</a></li>
-  <li><a href="#rutas-y-datos-que-maneja-cada-servicio">Rutas y datos que maneja cada servicio</a></li>
-  <li><a href="#pantalla-web-frontend">Pantalla web (Frontend)</a></li>
-  <li><a href="#variables-de-entorno-env">Variables de entorno (.env)</a></li>
-  <li><a href="#detalles-de-funcionamiento-y-prevencion-de-fallas">Detalles de funcionamiento y prevención de fallas</a></li>
-</ul>
+## Tabla de contenido
 
-<hr>
+- [<a name="toc-problema"></a>¿Qué problema resuelve?](#problema)
+- [<a name="toc-objetivo"></a>Objetivo del proyecto](#objetivo)
+- [<a name="toc-integrantes"></a>Integrantes del equipo](#integrantes)
+- [<a name="toc-arquitectura"></a>Cómo está organizado el sistema](#arquitectura)
+- [<a name="toc-estructura"></a>Estructura de las carpetas](#estructura)
+- [<a name="toc-puertos"></a>Servicios, puertos y bases de datos](#puertos)
+- [<a name="toc-rutas"></a>Rutas y endpoints de cada servicio](#rutas)
+- [<a name="toc-frontend"></a>Interfaz web (Frontend)](#frontend)
+- [<a name="toc-env"></a>Variables de entorno (.env)](#env)
+- [<a name="toc-detalles"></a>Persistencia de datos y prevención de fallas](#detalles)
 
-<h2 id="que-problema-resuelve">¿Qué problema resuelve?</h2>
-<p>Normalmente las universidades manejan mucha información y si todo se guarda en un solo programa pesado, cualquier fallo tumbaría todo el sistema o sería muy difícil de cambiar.</p>
-<p><code>gestor_academico2</code> soluciona esto dividiendo el trabajo en partes pequeñas y separadas:</p>
-<ul>
-  <li><strong>Trabajo independiente:</strong> Se pueden registrar alumnos, crear cursos o matricular personas de forma separada sin interferir entre sí.</li>
-  <li><strong>Crecer según la necesidad:</strong> Si en época de matrículas entra mucha gente al tiempo, solo se le da más fuerza a esa parte del sistema sin tocar lo demás.</li>
-  <li><strong>Si algo falla, lo demás sigue funcionando:</strong> Si por alguna razón se cae el servicio de estudiantes, la parte de cursos puede seguir recibiendo consultas normalmente.</li>
-</ul>
+---
 
-<hr>
+<a name="problema"></a>
+## ¿Qué problema resuelve?
 
-<h2 id="objetivo-del-proyecto">Objetivo del proyecto</h2>
-<p>Crear una plataforma funcional y fácil de usar para administrar los datos de una universidad, aplicando lo aprendido sobre <strong>APIs REST con Flask</strong>, respuestas organizadas en formato <strong>JSON</strong>, bases de datos separadas en <strong>PostgreSQL</strong> y el uso de <strong>Docker Compose</strong> para ejecutar todo con un solo comando.</p>
+En los sistemas monolíticos tradicionales, cualquier fallo en el módulo de matrículas o estudiantes puede tumbar toda la plataforma académica. 
 
-<hr>
+`gestor_academico2` desacopla estas responsabilidades en microservicios autónomos:
 
-<h2 id="integrantes-del-equipo">Integrantes del equipo</h2>
+- **Aislamiento de fallas:** Si el servicio de estudiantes requiere mantenimiento o se cae, el catálogo de cursos sigue operando sin interrupciones.
+- **Bases de datos independientes:** Ningún servicio accede directamente a la tabla de otro; cada uno tiene su propio servidor de PostgreSQL.
+- **Comunicación HTTP transparente:** El servicio de matrículas valida la información conectándose directamente a las APIs de Cursos y Estudiantes mediante peticiones web internas.
 
-<table border="1">
-  <thead>
-    <tr>
-      <th>Nombre</th>
-      <th>Rol y tareas</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Daniel Fernández</strong></td>
-      <td>Estructura general, configuración del archivo <code>.env</code>, pantalla web (<code>home/</code>) y servicios de Cursos y Estudiantes</td>
-    </tr>
-    <tr>
-      <td><strong>Olver Edinson Arenas Vásquez</strong></td>
-      <td>Creación e integración del microservicio de Matrículas (<code>matriculas_service</code>), unión de código en GitHub y documentación</td>
-    </tr>
-  </tbody>
-</table>
+---
 
-<hr>
+<a name="objetivo"></a>
+## Objetivo del proyecto
 
-<h2 id="como-esta-organizado-el-sistema">Cómo está organizado el sistema</h2>
-<p>Cada parte del sistema corre en su propio contenedor de Docker y se conectan entre sí por una red interna:</p>
+Desplegar una arquitectura distribuida lista para producción que permita registrar estudiantes, crear la oferta académica de cursos y gestionar las matrículas universitarias, garantizando la persistencia de datos mediante volúmenes de Docker y la configuración segura a través de variables de entorno.
 
-<pre>
-                        ┌───────────────────────────────┐
-                        │         Pantalla Web          │
-                        │    (home/index.html + JS)     │
-                        └───────────────┬───────────────┘
-                                        │ Peticiones HTTP
-             ┌──────────────────────────┼──────────────────────────┐
-             │ (Puerto 5002)            │ (Puerto 5000)            │ (Puerto 5003)
-             ▼                          ▼                          ▼
-┌─────────────────────────┐┌─────────────────────────┐┌─────────────────────────┐
-│  Servicio Estudiantes   ││     Servicio Cursos     ││   Servicio Matrículas   │
-│    (Flask / Python)     ││     (Raíz / Flask)      ││    (Flask / Python)     │
-└────────────┬────────────┘└────────────┬────────────┘└────────────┬────────────┘
-             │                          │                          │
-             ▼                          └──────────────┬───────────┘
-┌─────────────────────────┐                            ▼
-│   Base de Estudiantes   │               ┌─────────────────────────┐
-│     (PostgreSQL 16)     │               │     Base de Cursos      │
-└─────────────────────────┘               │     (PostgreSQL 16)     │
-                                          └─────────────────────────┘
-</pre>
+---
 
-<hr>
+<a name="integrantes"></a>
+## Integrantes del equipo
 
-<h2 id="estructura-de-las-carpetas">Estructura de las carpetas</h2>
+| Nombre | Rol y responsabilidades |
+| ------ | ----------------------- |
+| **Daniel Fernández** | Configuración general de infraestructura (`docker-compose.yml`), variables de entorno (`.env`), interfaz gráfica (`home/`) y microservicios de Cursos y Estudiantes. |
+| **Olver Edinson Arenas Vásquez** | Desarrollo e integración del microservicio de Matrículas (`matriculas_service`), consumo inter-servicio de APIs, gestión de ramas en GitHub y documentación técnica. |
 
-<pre>
+---
+
+<a name="arquitectura"></a>
+## Cómo está organizado el sistema
+
+Cada servicio se ejecuta dentro de su propio contenedor en una red privada virtual de Docker:
+
+```text
+                             ┌───────────────────────────────┐
+                             │         Interfaz Web          │
+                             │    (home/index.html + JS)     │
+                             └───────────────┬───────────────┘
+                                             │
+                        ┌────────────────────┼────────────────────┐
+                        │ Peticiones HTTP    │ Peticiones HTTP    │ Peticiones HTTP
+                        ▼ (Puerto 5001)      ▼ (Puerto 5002)      ▼ (Puerto 5003)
+┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+│   Servicio Estudiantes    ││      Servicio Cursos      ││    Servicio Matrículas    │
+│  (estudiantes_service)    ││     (cursos_service)      ││   (matriculas_service)    │
+└─────────────┬─────────────┘└─────────────┬─────────────┘└─────────────┬─────────────┘
+              │                            │                            │
+              │                            │     Consumo de API HTTP    │
+              │                            ├───────────────────────────►│ (Valida Alumnos
+              │                            │                            │  y Cursos)
+              ▼                            ▼                            ▼
+┌───────────────────────────┐┌───────────────────────────┐┌───────────────────────────┐
+│    db_estudiantes (BD)    ││      db_cursos (BD)       ││    db_matriculas (BD)     │
+│   (PostgreSQL - Port 5432)││   (PostgreSQL - Port 5432)││   (PostgreSQL - Port 5432)│
+└───────────────────────────┘└───────────────────────────┘└───────────────────────────┘
+
 gestor_academico2/
 │
-├── app.py                  # Archivo principal para arrancar el servicio de Cursos
-├── db.py                   # Conexión a la base de datos de Cursos
-├── routes.py               # Rutas del servicio de Cursos
-├── requirements.txt        # Librerías necesarias de Python
+├── cursos_service/         # Microservicio para la gestión de catálogo de cursos
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (cursos_db)
+│   ├── routes.py           # Endpoints REST (GET, POST, DELETE)
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── estudiantes_service/    # Carpeta del servicio de Estudiantes
-│   ├── app.py              # Inicia el servicio de Estudiantes
-│   ├── db.py               # Conexión a la base de datos de Estudiantes
-│   ├── routes.py           # Rutas para crear, ver, editar y borrar estudiantes
-│   ├── Dockerfile          # Instrucciones para crear el contenedor
-│   └── requirements.txt    # Librerías de Python
+├── estudiantes_service/    # Microservicio para administración de estudiantes
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (estudiantes_service)
+│   ├── routes.py           # Endpoints REST (GET, POST, PUT, DELETE)
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── matriculas_service/     # Carpeta del servicio de Matrículas
-│   ├── app.py              # Inicia el servicio de Matrículas
-│   ├── db.py               # Conexión a la base de datos compartida
-│   ├── routes.py           # Rutas para consultar y registrar matrículas
-│   ├── Dockerfile          # Instrucciones para crear el contenedor
-│   └── requirements.txt    # Librerías de Python
+├── matriculas_service/     # Microservicio para el registro e historial de matrículas
+│   ├── app.py              # Punto de entrada de la aplicación Flask
+│   ├── db.py               # Módulo de conexión a la BD PostgreSQL (matriculas_db)
+│   ├── routes.py           # Endpoints REST e integración vía HTTP con otros servicios
+│   ├── Dockerfile          # Configuración de imagen Docker
+│   └── requirements.txt    # Dependencias de Python
 │
-├── home/                   # Vista o pantalla del usuario
-│   ├── index.html          # Diseño visual de la página
-│   ├── styles.css          # Colores y estilos
-│   └── app.js              # Código que conecta la página con las APIs
+├── home/                   # Cliente Frontend web
+│   ├── index.html          # Interfaz visual interactiva
+│   ├── styles.css          # Hojas de estilo
+│   └── app.js              # Lógica de consumo de las APIs REST
 │
-├── .env                    # Claves y datos de conexión a las bases de datos
-├── .gitignore              # Archivos que no se suben a GitHub
-├── docker-compose.yml      # Archivo que arranca todos los contenedores
-└── README.md               # Este documento explicativo
-</pre>
+├── .env                    # Credenciales y parámetros de conexión global
+├── .gitignore              # Reglas de exclusión para Git
+├── docker-compose.yml      # Orquestador de contenedores, puertos y volúmenes
+└── README.md               # Documentación general del proyecto
 
-<hr>
+  Servicios, puertos y bases de datos
 
-<h2 id="servicios-y-puertos">Servicios y puertos</h2>
+| Servicio | Puerto Host (Equipo) | Puerto Contenedor | Nombre de la BD | Usuario BD | Contenedor BD |
+| :--- | :---: | :---: | :--- | :--- | :--- |
+| **Estudiantes** | `5001` | `5002` | `estudiantes_service` | `estudiante` | `db_estudiantes` |
+| **Cursos** | `5002` | `5000` | `cursos_db` | `curso` | `db_cursos` |
+| **Matrículas** | `5003` | `5003` | `matriculas_db` | `matricula` | `db_matriculas` |
 
-<table border="1">
-  <thead>
-    <tr>
-      <th>Servicio</th>
-      <th>Puerto en el equipo</th>
-      <th>Base de datos que usa</th>
-      <th>Contenedor de la Base de Datos</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Cursos</strong> (en la raíz)</td>
-      <td><code>5000</code></td>
-      <td><code>gestion_academica</code></td>
-      <td><code>db_cursos</code></td>
-    </tr>
-    <tr>
-      <td><strong>Estudiantes</strong></td>
-      <td><code>5002</code></td>
-      <td><code>gestion_academica</code></td>
-      <td><code>db_estudiantes</code></td>
-    </tr>
-    <tr>
-      <td><strong>Matrículas</strong></td>
-      <td><code>5003</code></td>
-      <td><code>gestion_academica</code></td>
-      <td><code>db_cursos</code></td>
-    </tr>
-  </tbody>
-</table>
+---
 
-<hr>
+Rutas y endpoints de cada servicio
+Todas las respuestas utilizan códigos de estado HTTP estandarizados (200 OK, 201 Created, 400 Bad Request, 404 Not Found) e intercambian información en formato JSON.
 
-<h2 id="rutas-y-datos-que-maneja-cada-servicio">Rutas y datos que maneja cada servicio</h2>
+1. Servicio de Estudiantes (:5001)
+Campos: id, cedula, nombre, apellido, correo, programa.
 
-<p>Todos los datos entran y salen en formato <strong>JSON</strong> usando respuestas claras como <code>200</code> cuando todo sale bien o <code>404</code> si algo no se encuentra.</p>
+Endpoints:
 
-<h3>1. Servicio de Cursos — Puerto 5000</h3>
-<ul>
-  <li><strong>Datos:</strong> <code>id</code>, <code>codigo</code>, <code>nombre</code>, <code>creditos</code>, <code>profesor</code>, <code>fecha_creacion</code>.</li>
-  <li><strong>Rutas:</strong>
-    <ul>
-      <li><code>GET /cursos</code>: Muestra la lista de todos los cursos.</li>
-      <li><code>POST /cursos</code>: Guarda un curso nuevo.</li>
-      <li><code>DELETE /cursos/&lt;id&gt;</code>: Elimina un curso usando su ID.</li>
-    </ul>
-  </li>
-</ul>
+GET /estudiantes — Obtiene la lista completa de estudiantes.
 
-<h3>2. Servicio de Estudiantes — Puerto 5002</h3>
-<ul>
-  <li><strong>Datos:</strong> <code>id</code>, <code>cedula</code>, <code>nombre</code>, <code>apellido</code>, <code>correo</code>, <code>programa</code>.</li>
-  <li><strong>Rutas:</strong>
-    <ul>
-      <li><code>GET /estudiantes</code>: Muestra todos los estudiantes.</li>
-      <li><code>GET /estudiantes/&lt;id&gt;</code>: Busca a un estudiante por su ID.</li>
-      <li><code>POST /estudiantes</code>: Guarda a un estudiante nuevo.</li>
-      <li><code>PUT /estudiantes/&lt;id&gt;</code>: Actualiza los datos de un estudiante.</li>
-      <li><code>DELETE /estudiantes/&lt;id&gt;</code>: Borra a un estudiante.</li>
-    </ul>
-  </li>
-</ul>
+GET /estudiantes/<id> — Obtiene los detalles de un estudiante específico.
 
-<h3>3. Servicio de Matrículas — Puerto 5003</h3>
-<ul>
-  <li><strong>Datos:</strong> <code>id</code>, <code>estudiante_id</code>, <code>curso_id</code>, <code>anio</code>, <code>periodo</code>.</li>
-  <li><strong>Rutas:</strong>
-    <ul>
-      <li><code>GET /matriculas</code>: Muestra las matrículas hechas.</li>
-      <li><code>POST /matriculas</code>: Guarda una matrícula uniendo el estudiante y el curso.</li>
-    </ul>
-  </li>
-</ul>
+POST /estudiantes — Registra un nuevo estudiante.
 
-<hr>
+PUT /estudiantes/<id> — Actualiza la información de un estudiante.
 
-<h2 id="pantalla-web-frontend">Pantalla web (Frontend)</h2>
-<p>En la carpeta <code>home/</code> dejamos una página web hecha con HTML, CSS y JavaScript.</p>
-<p>Sirve para probar el sistema directamente desde el navegador de forma visual, sin tener que usar programas externos como Postman para enviar las peticiones.</p>
+DELETE /estudiantes/<id> — Elimina un registro de estudiante.
 
-<hr>
+2. Servicio de Cursos (:5002)
+Campos: id, codigo, nombre, creditos, profesor, fecha_creacion.
 
-<h2 id="variables-de-entorno-env">Variables de entorno (.env)</h2>
-<p>Usamos un archivo llamado <code>.env</code> en la raíz para guardar la información de la base de datos de forma ordenada:</p>
+Endpoints:
 
-<pre>
-# Datos para la base de datos de Estudiantes
-ESTUDIANTES_DB_NAME=gestion_academica
-ESTUDIANTES_DB_USER=postgres
-ESTUDIANTES_DB_PASSWORD=postgres
+GET /cursos — Obtiene la oferta completa de cursos disponibles.
 
-# Datos para la base de datos de Cursos y Matrículas
+POST /cursos — Crea un nuevo curso en el sistema.
+
+DELETE /cursos/<id> — Remueve un curso según su ID.
+
+3. Servicio de Matrículas (:5003)
+Campos: id, estudiante_id, curso_id, anio, periodo.
+
+Endpoints:
+
+GET /matriculas — Consulta todas las matrículas registradas.
+
+POST /matriculas — Valida la existencia del alumno y del curso mediante peticiones HTTP a los servicios respectivos antes de guardar la inscripción.
+
+Interfaz web (Frontend)
+El proyecto incluye una aplicación web estática ubicada en la carpeta /home. Permite interactuar con la plataforma de forma intuitiva directamente desde cualquier navegador web sin requerir herramientas como Postman o cURL para efectuar operaciones CRUD.
+
+Variables de entorno (.env)
+El archivo .env concentra la configuración centralizada de acceso a la infraestructura:                                                          Base de datos: Servicio de Estudiantes
+ESTUDIANTES_DB_HOST=db_estudiantes
+ESTUDIANTES_DB_PORT=5432
+ESTUDIANTES_DB_NAME=estudiantes_service
+ESTUDIANTES_DB_USER=estudiante
+ESTUDIANTES_DB_PASSWORD=123456
+
+ Base de datos: Servicio de Cursos
 CURSOS_DB_PORT=5432
-CURSOS_DB_NAME=gestion_academica
-CURSOS_DB_USER=postgres
-CURSOS_DB_PASSWORD=postgres
-</pre>
-<h2 id="detalles-de-funcionamiento-y-prevencion-de-fallas">Detalles de funcionamiento y prevención de fallas</h2>
-<ol>
-  <li><strong>Los datos no se borran al apagar:</strong> Configuramos volúmenes en Docker (<code>estudiantes_data</code> y <code>cursos_data</code>) para que la información guardada en las bases de datos no se pierda al reiniciar el equipo o los contenedores.</li>
-  <li><strong>Reinicio si hay un fallo:</strong> Los contenedores están configurados para volver a levantarse automáticamente si ocurre un error inesperado.</li>
-  <li><strong>Relación entre datos:</strong> Como cada servicio maneja su propia base de datos, las relaciones (como saber qué estudiante pertenece a qué matrícula) se controlan directamente desde el código de Python.</li>
-</ol>
+CURSOS_DB_NAME=cursos_db
+CURSOS_DB_USER=curso
+CURSOS_DB_PASSWORD=123456
+
+ Base de datos: Servicio de Matrículas
+MATRICULAS_DB_PORT=5432
+MATRICULAS_DB_NAME=matriculas_db
+MATRICULAS_DB_USER=matricula
+MATRICULAS_DB_PASSWORD=123456
+
+Persistencia de datos y prevención de fallas
+Persistencia garantizada: Se definen tres volúmenes independientes de Docker (estudiantes_data, cursos_data y matriculas_data) asignados a los directorios de almacenamiento de PostgreSQL /var/lib/postgresql/data. Esto asegura que los datos se conserven aunque se detengan o reconstruyan los contenedores.
+
+Políticas de reinicio: Los contenedores de aplicaciones están configurados con restart: always u on-failure para reanimar automáticamente los procesos en caso de un cierre inesperado.
+
+Desacoplamiento de red: La comunicación inter-servicio se resuelve mediante DNS interno de Docker en la red compartida, evitando el acoplamiento rígido de IP estáticas.
