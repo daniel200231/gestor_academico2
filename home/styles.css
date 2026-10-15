@@ -75,4 +75,12 @@ body {
   padding: 24px;
   border-radius: 12px; /*una sombra suave*/
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: none;
+}
+.panel.activo {
+  display: block;
+}
+/*separar los paneles*/
+.panel + .panel {
+  margin-top: 16px;
 }

@@ -1,13 +1,4 @@
 services:
-  db_matriculas:
-    image: postgres:16
-    environment:
-      - POSTGRES_DB=${MATRICULAS_DB_NAME}
-      - POSTGRES_USER=${MATRICULAS_DB_USER}
-      - POSTGRES_PASSWORD=${MATRICULAS_DB_PASSWORD}
-    volumes:
-      - matriculas_data:/var/lib/postgresql/data
-
   db_estudiantes:
     image: postgres:16
     environment:
@@ -64,6 +55,15 @@ services:
     restart: always
     depends_on:
       - db_matriculas
+
+  db_matriculas:
+    image: postgres:16
+    environment:
+      - POSTGRES_DB=${MATRICULAS_DB_NAME}
+      - POSTGRES_USER=${MATRICULAS_DB_USER}
+      - POSTGRES_PASSWORD=${MATRICULAS_DB_PASSWORD}
+    volumes:
+      - matriculas_data:/var/lib/postgresql/data
 
 volumes:
   estudiantes_data:
