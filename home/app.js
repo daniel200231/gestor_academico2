@@ -1,6 +1,38 @@
 // URL del servicio de estudiantes,
 const API_ESTUDIANTES = "http://localhost:5001/estudiantes";
+const API_MATRICULAS = "http://localhost:5003/matriculas";
+const API_CURSOS = "http://localhost:5002/cursos";
+const enlaces = document.querySelectorAll(".sidebar a");
+const paneles = document.querySelectorAll(".panel");
 
+async function cargarMatriculas() {
+  const respuesta = await fetch(API_MATRICULAS);
+  const matriculas = await respuesta.json();
+
+  document.getElementById("total-matriculas").textContent = matriculas.length;
+
+  const lista = document.getElementById("lista-matriculas");
+  lista.innerHTML = "";
+  matriculas.forEach((m) => {
+    const li = document.createElement("li");
+    li.textContent = `Matrícula ${m.id}: estudiante ${m.estudiante_id}, curso ${m.curso_id} - ${m.estado}`;
+    lista.appendChild(li);
+  });
+}
+async function cargarCursos() {
+  const respuesta = await fetch(API_CURSOS);
+  const cursos = await respuesta.json();
+
+  document.getElementById("total-cursos").textContent = cursos.length;
+
+  const lista = document.getElementById("lista-cursos");
+  lista.innerHTML = "";
+  cursos.forEach((c) => {
+    const li = document.createElement("li");
+    li.textContent = `${c.codigo} - ${c.nombre} (${c.creditos} créditos, semestre ${c.semestre})`;
+    lista.appendChild(li);
+  });
+}
 // async permite usar esperar respuestas lentas
 async function cargarEstudiantes() {
   // Petición GET al servicio y espera la respuesta.
@@ -75,5 +107,23 @@ document
     cargarEstudiantes();
   });
 
+// Muestra solo el panel cuyo id coincide y oculta los demás.
+function mostrar(id) {
+  paneles.forEach((p) => p.classList.toggle("activo", p.id === id));
+}
+
+// Al pulsar un enlace: evita el salto de anclaje y muestra su panel.
+// href="#cursos" -> slice(1) quita el "#" y deja "cursos".
+enlaces.forEach((a) => {
+  a.addEventListener("click", (evento) => {
+    evento.preventDefault();
+    mostrar(a.getAttribute("href").slice(1));
+  });
+});
+
+// Vista inicial al abrir la página.
+mostrar("estudiantes");
 // Se ejecuta al abrir la página: carga la lista inicial.
 cargarEstudiantes();
+cargarMatriculas();
+cargarCursos();
