@@ -36,6 +36,8 @@ services:
       - DB_NAME=${CURSOS_DB_NAME}
       - DB_USER=${CURSOS_DB_USER}
       - DB_PASSWORD=${CURSOS_DB_PASSWORD}
+      - DELAY=${CURSOS_DELAY}
+      - HTTP_TIMEOUT=${HTTP_TIMEOUT}
     restart: always
     depends_on:
       - db_cursos
