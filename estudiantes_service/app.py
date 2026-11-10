@@ -4,7 +4,12 @@ from routes import estudiantes_bp
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app) 
+
+# Inicializar las tablas de la BD si no existen
+init_db()
+
+# Registrar el Blueprint de estudiantes
 app.register_blueprint(estudiantes_bp)
 
 @app.route("/health")
