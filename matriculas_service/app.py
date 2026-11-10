@@ -1,3 +1,4 @@
+
 from flask import Flask
 from flask_cors import CORS
 from db import init_db
@@ -6,7 +7,7 @@ from routes import matriculas_bp
 app = Flask(__name__)
 CORS(app)
 
-
+# Registrar el Blueprint de matrículas
 app.register_blueprint(matriculas_bp)
 
 if __name__ == '__main__':

@@ -1,10 +1,11 @@
-from flask import Flask, jsonify
+
+from flask import Flask
+from flask_cors import CORS
 from db import init_db
 from routes import estudiantes_bp
-from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
 
 # Inicializar las tablas de la BD si no existen
 init_db()
@@ -12,10 +13,5 @@ init_db()
 # Registrar el Blueprint de estudiantes
 app.register_blueprint(estudiantes_bp)
 
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok"}), 200
-
-if __name__ == "__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=5002)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5002)
