@@ -7,39 +7,25 @@ estudiantes_bp = Blueprint("estudiantes", __name__)
 def listar():
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT id, cedula, nombre, apellido, correo, programa FROM estudiantes")
-    filas = cur.fetchall()
+    cur.execute("SELECT * FROM estudiantes;")
+    estudiantes = cur.fetchall()
     cur.close()
     conn.close()
-    estudiantes = [
-        {"id": f[0], "cedula": f[1], "nombre": f[2], "apellido": f[3], "correo": f[4], "programa": f[5]}
-        for f in filas
-    ]
     return jsonify(estudiantes), 200
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["GET"])
 def obtener(id):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT id, cedula, nombre, apellido, correo, programa FROM estudiantes WHERE id = %s",
-        (id,)
-    )
-    f = cur.fetchone()
+    cur.execute("SELECT * FROM estudiantes WHERE id = %s;", (id,))
+    estudiante = cur.fetchone()
     cur.close()
     conn.close()
 
-    if f is None:
+    if estudiante is None:
         return jsonify({"error": "Estudiante no encontrado"}), 404
     
-    return jsonify({
-        "id": f[0],
-        "cedula": f[1],
-        "nombre": f[2],
-        "apellido": f[3],
-        "correo": f[4],
-        "programa": f[5]
-    }),200
+    return jsonify(estudiante), 200
 
 @estudiantes_bp.route("/estudiantes", methods=["POST"])
 def crear():
@@ -47,14 +33,17 @@ def crear():
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO estudiantes(cedula, nombre, apellido, correo, programa) VALUES(%s, %s, %s, %s, %s) RETURNING id",
+        """
+        INSERT INTO estudiantes(cedula, nombre, apellido, correo, programa) 
+        VALUES(%s, %s, %s, %s, %s) RETURNING *;
+        """,
         (data["cedula"], data["nombre"], data["apellido"], data["correo"], data["programa"])
     )
-    nuevo_id= cur.fetchone()[0]
+    nuevo_estudiante = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return jsonify({"mensaje": "estudiante creado", "id": nuevo_id}),201
+    return jsonify(nuevo_estudiante), 201
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["PUT"])
 def actualizar(id):
@@ -62,29 +51,32 @@ def actualizar(id):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute(
-        "UPDATE estudiantes SET cedula = %s, nombre = %s, apellido = %s, correo = %s, programa = %s WHERE id = %s",
+        """
+        UPDATE estudiantes 
+        SET cedula = %s, nombre = %s, apellido = %s, correo = %s, programa = %s 
+        WHERE id = %s RETURNING *;
+        """,
         (data["cedula"], data["nombre"], data["apellido"], data["correo"], data["programa"], id)
     )
-    filas = cur.rowcount
+    estudiante_actualizado = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    if filas == 0:
+
+    if estudiante_actualizado is None:
         return jsonify({"error": "Estudiante no encontrado"}), 404
-    return jsonify({"mensaje": "estudiante actualizado", "id": id}), 200
+    return jsonify(estudiante_actualizado), 200
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["DELETE"])
-def elimiar(id):
+def eliminar(id):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute(
-          "DELETE FROM estudiantes WHERE id = %s",
-        (id,)
-    )
-    filas = cur.rowcount
+    cur.execute("DELETE FROM estudiantes WHERE id = %s RETURNING id;", (id,))
+    eliminado = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    if filas == 0:
-        return jsonify({"error": "no se puede eliminar el estudiante"}), 404
-    return jsonify({"mensaje": "estudiante eliminado", "id": id}), 200
+
+    if eliminado is None:
+        return jsonify({"error": "No se pudo eliminar el estudiante"}), 404
+    return jsonify({"mensaje": "Estudiante eliminado correctamente", "id": id}), 200
