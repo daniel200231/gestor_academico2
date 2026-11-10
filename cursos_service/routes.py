@@ -1,10 +1,14 @@
 from flask import Blueprint, request, jsonify
 from db import obtener_conexion
+import os
+import time
+DELAY = float(os.getenv('DELAY', 5))  
 
 cursos_bp = Blueprint('cursos', __name__)
 
 @cursos_bp.route('/cursos', methods=['GET'])
 def listar_cursos():
+    time.sleep(DELAY)
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     cursor.execute("SELECT * FROM curso;")
@@ -15,6 +19,7 @@ def listar_cursos():
 
 @cursos_bp.route('/cursos/<int:id>', methods=['GET'])
 def obtener_curso(id):
+    time.sleep(DELAY) 
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     cursor.execute("SELECT * FROM curso WHERE id = %s;", (id,))
@@ -60,6 +65,7 @@ def actualizar_curso(id):
 
 @cursos_bp.route('/cursos/<int:id>', methods=['DELETE'])
 def eliminar_curso(id):
+    time.sleep(DELAY)
     conexion = obtener_conexion()
     cursor = conexion.cursor()
     cursor.execute("DELETE FROM curso WHERE id = %s RETURNING id;", (id,))
