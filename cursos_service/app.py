@@ -6,10 +6,10 @@ from routes import cursos_bp
 app = Flask(__name__)
 CORS(app)
 
-# Inicializar las tablas si no existen
+# Inicializar las tablas al arrancar el contenedor
 init_db()
 
-# Registrar rutas
+# Registrar Blueprint de rutas
 app.register_blueprint(cursos_bp)
 
 if __name__ == '__main__':

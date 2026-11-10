@@ -4,15 +4,15 @@ import psycopg2
 
 def get_db_connection():
     return psycopg2.connect(
-        host=os.getenv('DB_HOST', 'db'),
-        database=os.getenv('DB_NAME', 'gestion_academica'),
-        user=os.getenv('DB_USER', 'postgres'),
-        password=os.getenv('DB_PASSWORD', 'postgres'),
+        host=os.getenv('DB_HOST', 'db_matriculas'),
+        database=os.getenv('DB_NAME', 'matriculas_db'),
+        user=os.getenv('DB_USER', 'matricula'),
+        password=os.getenv('DB_PASSWORD', '123456'),
         port=os.getenv('DB_PORT', '5432')
     )
 
 def init_db():
-    retries = 5
+    retries = 10
     while retries > 0:
         try:
             conn = get_db_connection()
@@ -32,7 +32,6 @@ def init_db():
             print("Tabla matricula inicializada con éxito.")
             break
         except Exception as e:
-            print(f"Esperando a la base de datos... ({e})")
+            print(f"Esperando a la base de datos de Matrículas... ({e})")
             retries -= 1
             time.sleep(2)
-            

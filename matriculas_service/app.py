@@ -5,6 +5,8 @@ from routes import matriculas_bp
 
 app = Flask(__name__)
 CORS(app)
+
+# Registrar el Blueprint de matrículas
 app.register_blueprint(matriculas_bp)
 
 if __name__ == '__main__':
