@@ -1,10 +1,15 @@
 from flask import Blueprint, jsonify, request
 from db import get_connection
+import os
+import time
+
+DELAY = float(os.getenv("ESTUDIANTES_DELAY", 0))
 
 estudiantes_bp = Blueprint("estudiantes", __name__)
 
 @estudiantes_bp.route("/estudiantes", methods=["GET"])
 def listar():
+    time.sleep(DELAY) 
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM estudiantes;")
@@ -15,6 +20,7 @@ def listar():
 
 @estudiantes_bp.route("/estudiantes/<int:id>", methods=["GET"])
 def obtener(id):
+    time.sleep(DELAY)
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM estudiantes WHERE id = %s;", (id,))
