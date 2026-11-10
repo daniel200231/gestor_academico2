@@ -3,10 +3,39 @@ from db import get_db_connection
 from psycopg2.extras import RealDictCursor
 import os
 import requests
-ESTUDIANTES_URL = os.getenv("ESTUDIANTES_URL")
-CURSOS_URL = os.getenv("CURSOS_URL")
+import pybreaker
+
+# 1. Variables de entorno para comunicación y resiliencia 
+ESTUDIANTES_URL = os.getenv("ESTUDIANTES_URL", "http://estudiantes:5002")
+CURSOS_URL = os.getenv("CURSOS_URL", "http://cursos_service:5000")
+HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", 3))
+CB_FAIL_MAX = int(os.getenv("CB_FAIL_MAX", 3))
+CB_RESET_TIMEOUT = int(os.getenv("CB_RESET_TIMEOUT", 30))
+
+# 2. Instanciación del Circuit Breaker 
+breaker_estudiantes = pybreaker.CircuitBreaker(
+    fail_max=CB_FAIL_MAX,
+    reset_timeout=CB_RESET_TIMEOUT,
+    throw_new_error_on_trip=False,
+    name="EstudiantesBreaker"
+)
+
+breaker_cursos = pybreaker.CircuitBreaker(
+    fail_max=CB_FAIL_MAX,
+    reset_timeout=CB_RESET_TIMEOUT,
+    throw_new_error_on_trip=False,
+    name="CursosBreaker"
+)
 
 matriculas_bp = Blueprint('matriculas', __name__)
+
+# Endpoint de Diagnóstico
+@matriculas_bp.route('/circuit-status', methods=['GET'])
+def circuit_status():
+    return jsonify({
+        "estudiantes_circuit": breaker_estudiantes.current_state,
+        "cursos_circuit": breaker_cursos.current_state
+    }), 200
 
 @matriculas_bp.route('/matriculas', methods=['GET'])
 def get_matriculas():
@@ -49,18 +78,54 @@ def create_matricula():
 
     if not estudiante_id or not curso_id:
         return jsonify({'error': 'estudiante_id y curso_id son obligatorios'}), 400
+
+    
+    # CIRCUIT BREAKER
     try:
-        r = requests.get(f"{ESTUDIANTES_URL}/estudiantes/{estudiante_id}", timeout=3)
-    except requests.exceptions.RequestException:
-        return jsonify({"error":"servicio de estudiantes no disponible"}),503
-    if r.status_code== 404:
-        return jsonify({"error":"el estudiante no existe"}),404    
+        @breaker_estudiantes
+        def consultar_estudiante():
+            return requests.get(f"{ESTUDIANTES_URL}/estudiantes/{estudiante_id}", timeout=HTTP_TIMEOUT)
+        
+        r_est = consultar_estudiante()
+        if r_est.status_code == 404:
+            return jsonify({"error": "El estudiante no existe"}), 404
+        if r_est.status_code >= 500:
+            r_est.raise_for_status()
+
+    except pybreaker.CircuitBreakerError:
+        
+        return jsonify({"error": "Circuito ABIERTO: Servicio de Estudiantes fallando repetidamente"}), 503
+    except requests.exceptions.Timeout:
+        # Latencia 
+        return jsonify({"error": "Gateway Timeout: Servicio de Estudiantes tardó demasiado en responder"}), 504
+    except requests.exceptions.ConnectionError:
+        # Caída de red 
+        return jsonify({"error": "Service Unavailable: No se pudo conectar con el servicio de Estudiantes"}), 503
+
+    # VALIDACIÓN 
+    
     try:
-        r = requests.get(f"{CURSOS_URL}/cursos/{curso_id}", timeout=3)
-    except requests.exceptions.RequestException:
-        return jsonify({"error": "servicio de cursos no disponible"}), 503
-    if r.status_code == 404:
-        return jsonify({"error": "el curso no existe"}), 404
+        @breaker_cursos
+        def consultar_curso():
+            return requests.get(f"{CURSOS_URL}/cursos/{curso_id}", timeout=HTTP_TIMEOUT)
+        
+        r_cur = consultar_curso()
+        if r_cur.status_code == 404:
+            return jsonify({"error": "El curso no existe"}), 404
+        if r_cur.status_code >= 500:
+            r_cur.raise_for_status()
+    
+    except pybreaker.CircuitBreakerError:
+        return jsonify({"error": "Circuito ABIERTO: Servicio de Cursos fallando repetidamente"}), 503
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Gateway Timeout: Servicio de Cursos tardó demasiado en responder"}), 504
+    except requests.exceptions.ConnectionError:
+        return jsonify({"error": "Service Unavailable: No se pudo conectar con el servicio de Cursos"}), 503
+    except requests.exceptions.HTTPError:
+        return jsonify({"error": "Error en la respuesta del servicio de Cursos"}), 502
+    except requests.exceptions.HTTPError:
+        return jsonify({"error": "Error en la respuesta del servicio de Cursos"}), 502
+    # PERSISTENCIA EN MATRICULAS 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(
