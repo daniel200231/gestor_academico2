@@ -86,3 +86,23 @@ def eliminar(id):
     if eliminado is None:
         return jsonify({"error": "No se pudo eliminar el estudiante"}), 404
     return jsonify({"mensaje": "Estudiante eliminado correctamente", "id": id}), 200
+@estudiantes_bp.route("/health", methods=["GET"])
+def health_check():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.close()
+        conn.close()
+        return jsonify({
+            "status": "UP",
+            "service": "estudiantes_service",
+            "database": "UP"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "DOWN",
+            "service": "estudiantes_service",
+            "database": "DOWN",
+            "error": str(e)
+        }), 503

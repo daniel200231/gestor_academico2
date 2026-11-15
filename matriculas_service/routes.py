@@ -247,3 +247,24 @@ def delete_matricula(id):
     return jsonify({
         'message': 'Matricula eliminada exitosamente'
     }), 200
+
+@matriculas_bp.route('/health', methods=['GET'])
+def health_check():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1;")
+        cur.close()
+        conn.close()
+        return jsonify({
+            "status": "UP",
+            "service": "matriculas_service",
+            "database": "UP"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "DOWN",
+            "service": "matriculas_service",
+            "database": "DOWN",
+            "error": str(e)
+        }), 503

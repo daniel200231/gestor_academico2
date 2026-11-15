@@ -7,6 +7,12 @@ services:
       - POSTGRES_PASSWORD=${ESTUDIANTES_DB_PASSWORD}
     volumes:
       - estudiantes_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ESTUDIANTES_DB_USER} -d ${ESTUDIANTES_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   estudiantes:
     build: ./estudiantes_service
@@ -15,7 +21,14 @@ services:
     env_file: .env
     restart: on-failure
     depends_on:
-      - db_estudiantes
+      db_estudiantes:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5002/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   db_cursos:
     image: postgres:16
@@ -25,6 +38,12 @@ services:
       - POSTGRES_PASSWORD=${CURSOS_DB_PASSWORD}
     volumes:
       - cursos_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CURSOS_DB_USER} -d ${CURSOS_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   cursos_service:
     build: ./cursos_service
@@ -40,17 +59,14 @@ services:
       - HTTP_TIMEOUT=${HTTP_TIMEOUT}
     restart: always
     depends_on:
-      - db_cursos
-
-  home:
-    build: ./home
-    ports:
-      - "8080:80"
-    restart: always
-    depends_on:
-      - estudiantes
-      - cursos_service
-      - matriculas_service
+      db_cursos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   db_matriculas:
     image: postgres:16
@@ -60,6 +76,12 @@ services:
       - POSTGRES_PASSWORD=${MATRICULAS_DB_PASSWORD}
     volumes:
       - matriculas_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MATRICULAS_DB_USER} -d ${MATRICULAS_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   matriculas_service:
     build: ./matriculas_service
@@ -78,7 +100,33 @@ services:
       - CB_RESET_TIMEOUT=${CB_RESET_TIMEOUT}
     restart: always
     depends_on:
-      - db_matriculas
+      db_matriculas:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5003/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  home:
+    build: ./home
+    ports:
+      - "8080:80"
+    restart: always
+    depends_on:
+      estudiantes:
+        condition: service_healthy
+      cursos_service:
+        condition: service_healthy
+      matriculas_service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://127.0.0.1:80/health || wget -qO- http://127.0.0.1:80/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 volumes:
   estudiantes_data:
