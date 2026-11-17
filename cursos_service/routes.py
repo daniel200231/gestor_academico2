@@ -76,3 +76,23 @@ def eliminar_curso(id):
     if eliminado:
         return jsonify({'mensaje': 'Curso eliminado correctamente'}), 200
     return jsonify({'mensaje': 'Curso no encontrado'}), 404
+@cursos_bp.route('/health', methods=['GET'])
+def health_check():
+    try:
+        conexion = obtener_conexion()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT 1;")
+        cursor.close()
+        conexion.close()
+        return jsonify({
+            "status": "UP",
+            "service": "cursos_service",
+            "database": "UP"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "status": "DOWN",
+            "service": "cursos_service",
+            "database": "DOWN",
+            "error": str(e)
+        }), 503
