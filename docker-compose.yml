@@ -42,10 +42,12 @@ services:
     depends_on:
       - db_cursos
 
-  home:
-    build: ./home
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     ports:
-      - "8080:80"
+      - "8081:80"
     restart: always
     depends_on:
       - estudiantes
